@@ -113,7 +113,7 @@ class WorkspaceBagger():
             log.info("New vs. old: %s" % changed_local_filenames)
         return total_bytes, total_files
 
-    def _set_bag_info(self, bag, total_bytes, total_files, ocrd_identifier, ocrd_base_version_checksum, ocrd_mets=DEFAULT_METS_BASENAME):
+    def _set_bag_info(self, bag, total_bytes, total_files, ocrd_identifier, ocrd_work_identifier, prev_pid, img_file_grp, fulltext_file_grp, f_type, is_gt, institution, ocrd_base_version_checksum, ocrd_mets=DEFAULT_METS_BASENAME):
         bag.info['BagIt-Profile-Identifier'] = OCRD_BAGIT_PROFILE_URL
         bag.info['Bag-Software-Agent'] = 'ocrd/core %s (bagit.py %s, bagit_profile %s) [cmdline: "%s"]' % (
             VERSION, # TODO
@@ -122,16 +122,35 @@ class WorkspaceBagger():
             ' '.join(sys.argv))
 
         bag.info['Ocrd-Identifier'] = ocrd_identifier
+        bag.info['Ocrd-Work-Identifier'] = ocrd_work_identifier
+        bag.info['Olahd-Search-Prev-PID'] = prev_pid
         if ocrd_base_version_checksum:
             bag.info['Ocrd-Base-Version-Checksum'] = ocrd_base_version_checksum
         bag.info['Bagging-Date'] = str(datetime.now())
         bag.info['Payload-Oxum'] = '%s.%s' % (total_bytes, total_files)
+        if img_file_grp:
+            bag.info['Olahd-Search-Image-Filegrp'] = '%s' % (img_file_grp)
+        if fulltext_file_grp:
+            bag.info['Olahd-Search-Fulltext-Filegrp'] = '%s' % (fulltext_file_grp)
+        if f_type:
+            bag.info['Olahd-Search-Fulltext-Ftype'] = '%s' % (f_type)
+        if is_gt:
+            bag.info['Olahd-GT'] = '%s' % (is_gt)
+        if institution:
+            bag.info['Olahd-Importer'] = '%s' % (institution)
         if ocrd_mets != DEFAULT_METS_BASENAME:
             bag.info['Ocrd-Mets'] = ocrd_mets
 
     def bag(self,
             workspace,
             ocrd_identifier,
+            ocrd_work_identifier,
+            prev_pid,
+            img_file_grp,
+            fulltext_file_grp,
+            f_type,
+            is_gt,
+            institution,
             dest=None,
             ocrd_mets=DEFAULT_METS_BASENAME,
             ocrd_base_version_checksum=None,
@@ -148,9 +167,16 @@ class WorkspaceBagger():
 
         Arguments:
             workspace (ocrd.Workspace): workspace to bag
-            ord_identifier (string): Ocrd-Identifier in bag-info.txt
+            ocrd_work_identifier (string): Work identifier (e.g. PPN...) in bag-info.txt
+            ocrd_identifier (string): Prefixed work identifier extended by institution ID (e.g. <ISIL>_PPN...) in bag-info.txt
+            prev_pid (string): OLA-HD PID of a previous import of the title in question (required to establish a relationship between the import objects) in bag-info.txt
             dest (string): Path of the generated OCRD-ZIP.
             ord_mets (string): Ocrd-Mets in bag-info.txt
+            img_file_grp (string): Ocrd image file group to use, added to bag-info.txt
+            fulltext_file_grp (string): Ocrd full-text file group to use, added to bag-info.txt
+            f_type (string): Ocrd full-text type, added to bag-info.txt
+            is_gt (string): If the full-text file group contains GT data, added to bag-info.txt
+            institution (string): Name of the importer institution, added to bag-info.txt
             ord_base_version_checksum (string): Ocrd-Base-Version-Checksum in bag-info.txt
             processes (integer): Number of parallel processes checksumming
             skip_zip (boolean): Whether to leave directory unzipped
@@ -183,7 +209,7 @@ class WorkspaceBagger():
 
         # create bag-info.txt
         bag = Bag(bagdir)
-        self._set_bag_info(bag, total_bytes, total_files, ocrd_identifier, ocrd_base_version_checksum, ocrd_mets=ocrd_mets)
+        self._set_bag_info(bag, total_bytes, total_files, ocrd_identifier, ocrd_work_identifier, prev_pid, img_file_grp, fulltext_file_grp, f_type, is_gt, institution, ocrd_base_version_checksum, ocrd_mets=ocrd_mets)
 
         for tag_file in tag_files:
             copyfile(tag_file, join(bagdir, os_path_basename(tag_file)))
